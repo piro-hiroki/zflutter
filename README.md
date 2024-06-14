@@ -1,25 +1,17 @@
-<a  href="https://z.flutter.gallery/"><img  height="80px" src="./logo.png"/></a>
+<a  href="https://z.flutter.gallery/"><img height="80px" src="logo.png"/></a>
 
 
 # Zflutter
-
-<a  href="https://z.flutter.gallery/"><img align="right"  height="250px" src="https://github.com/jamesblasco/zflutter/blob/master/docs/assets/images/ui3d.gif?raw"/></a> 
 
 <a  href="https://pub.dev/packages/zflutter"><img  class="shield-button"  src="https://img.shields.io/pub/v/zflutter.svg?logo=flutter&color=blue&style=for-the-badge" /></a>
 
 
 
 **A pseudo-3D engine for Flutter.**
-</br>
 
 This is an alpha version and it might change before release.
 
 To read the docs and see examples visit [z.flutter.gallery](https://z.flutter.gallery/)
-
-
-
-
-</br></br></br></br>
 
 # Zflutter is based on Zdog
 
@@ -39,3 +31,7 @@ Also I would like to encourage to submit issues and PR to improve this package.
 - Polish the code and add documentation
 - Add testing
 - Implement hitTest in ZWidgets
+
+# Known Issues
+- Scale in web is pixelated: [Flutter #34878](https://github.com/flutter/flutter/issues/34878)
+- Touch input inside ZWidgets is not detected yet
