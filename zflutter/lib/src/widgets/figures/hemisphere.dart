@@ -1,9 +1,6 @@
-import 'dart:ui';
-
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
-import 'package:zflutter/src/widgets/group.dart';
 import 'package:zflutter/zflutter.dart';
 import 'dart:math' as math;
 
@@ -16,14 +13,14 @@ class ZHemisphere extends StatelessWidget {
   final bool visible;
 
   // final ZVector front;
-  final Color backfaceColor;
+  final Color? backfaceColor;
 
   //var front = ZVector.only(z: 1);
   ZHemisphere({
     this.diameter = 1,
     this.stroke = 1,
-    this.color,
-    this.visible,
+    required this.color,
+    this.visible = true,
     this.backfaceColor,
   });
 
@@ -49,17 +46,19 @@ class ZHemisphere extends StatelessWidget {
   }
 }
 
-class _ZCylinderMiddle extends ZShape {
+class _ZCylinderMiddle extends ZShapeBuilder {
   final double diameter;
 
-  _ZCylinderMiddle(
-      {this.diameter, List<ZPathCommand> path, double stroke = 1, Color color})
-      : super(path: [], stroke: stroke, color: color);
+  _ZCylinderMiddle({
+    required this.diameter,
+    double stroke = 1,
+    required Color color,
+  }) : super(stroke: stroke, color: color);
 
   @override
   _RenderZHemisphere createRenderObject(BuildContext context) {
     return _RenderZHemisphere(
-      path: path,
+      pathBuilder: buildPath(),
       stroke: stroke,
       diameter: diameter,
       color: color,
@@ -71,8 +70,13 @@ class _ZCylinderMiddle extends ZShape {
       BuildContext context, _RenderZHemisphere renderObject) {
     renderObject.diameter = diameter;
     renderObject.stroke = stroke;
-    renderObject.path = path;
+    renderObject.pathBuilder = buildPath();
     renderObject.color = color;
+  }
+
+  @override
+  PathBuilder buildPath() {
+    return PathBuilder.empty;
   }
 }
 
@@ -85,21 +89,20 @@ class _RenderZHemisphere extends RenderZShape {
     if (_diameter == value) return;
     _diameter = value;
 
-    markNeedsPaint();
+    markNeedsLayout();
   }
 
-  ZVector apex;
+  ZVector? apex;
   @override
-  void performLayout() {
+  void performTransformation() {
+    super.performTransformation();
     final ZParentData anchorParentData = parentData as ZParentData;
-    matrix4.setIdentity();
+
     // print('relayout ${anchorParentData.transforms.length}');
     apex = ZVector.only(z: diameter / 2);
     anchorParentData.transforms.reversed.forEach((matrix4) {
-      //   print(matrix4);
-      apex = apex.transform(matrix4.translate, matrix4.rotate, matrix4.scale);
+      apex = apex!.transform(matrix4.translate, matrix4.rotate, matrix4.scale);
     });
-    super.performLayout();
   }
 
   @override
@@ -109,9 +112,16 @@ class _RenderZHemisphere extends RenderZShape {
   }
 
   _RenderZHemisphere(
-      {List<ZPathCommand> path, double diameter, double stroke, Color color})
+      {required PathBuilder pathBuilder,
+      required double diameter,
+      required double stroke,
+      required Color color})
       : _diameter = diameter,
-        super(path: path, stroke: stroke, color: color, fill: true);
+        super(
+            pathBuilder: pathBuilder, stroke: stroke, color: color, fill: true);
+
+  @override
+  bool get needsDirection => true;
 
   @override
   void render(ZRenderer renderer) {
@@ -122,12 +132,12 @@ class _RenderZHemisphere extends RenderZShape {
 
     final startAngle = contourAngle + tau / 4;
     final endAnchor = contourAngle - tau / 4;
-
-    renderer.begin();
-    renderer.move(origin);
-    renderer.arc(x, y, demoRadius, startAngle, endAnchor);
-    renderer.closePath();
-    if (stroke > 0) renderer.stroke(color, stroke);
-    if (fill) renderer.fill(color);
+    final builder = ZPathBuilder();
+    builder.begin();
+    builder.move(origin);
+    builder.arc(x, y, demoRadius, startAngle, endAnchor);
+    builder.closePath();
+    if (stroke > 0) renderer.stroke(builder.path, color, stroke);
+    if (fill) renderer.fill(builder.path, color);
   }
 }

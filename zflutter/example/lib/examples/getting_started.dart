@@ -1,5 +1,3 @@
-import 'dart:math';
-
 import 'package:flutter/material.dart';
 import 'package:z_flutter_example/spin.dart';
 import 'package:zflutter/zflutter.dart';
@@ -26,19 +24,21 @@ class GettingStartedSamples {
     title: 'Animated',
     route: '/animated',
     builder: (_) => Spin(
-        builder: (context, rotate) => ZIllustration(
-              zoom: 2,
-              children: [
-                ZPositioned(
-                  rotate: rotate,
-                  child: ZCircle(
-                    diameter: 80,
-                    stroke: 20,
-                    color: Color(0xFFCC2255),
-                  ),
-                ),
-              ],
-            )),
+      builder: (context, rotate) => ZIllustration(
+        zoom: 2,
+        children: [
+
+          ZPositioned(
+            rotate: rotate,
+            child: ZCircle(
+              diameter: 80,
+              stroke: 20,
+              color: Color(0xFFCC2255),
+            ),
+          ),
+        ],
+      ),
+    ),
   );
 
   static final Example drag = Example(
@@ -83,8 +83,6 @@ class GettingStartedSamples {
       },
     ),
   );
-
-
 
   static List<Example> get list => [zoom, animated, drag, boxAdapter];
 }

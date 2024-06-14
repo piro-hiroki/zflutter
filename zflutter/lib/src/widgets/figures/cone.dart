@@ -7,17 +7,16 @@ class ZCone extends ZCircle {
   final double length;
 
   ZCone({
-    this.length,
-    Key key,
-    @required this.diameter,
-    Color color,
+    required this.length,
+    Key? key,
+    required this.diameter,
+    required Color color,
     bool closed = false,
-    Color backfaceColor,
+    Color? backfaceColor,
     double stroke = 1,
     bool fill = true,
     ZVector front = const ZVector.only(z: 1),
-  })  : assert(diameter != null),
-        super(
+  })  : super(
             key: key,
             color: color,
             backfaceColor: backfaceColor,
@@ -31,7 +30,7 @@ class ZCone extends ZCircle {
   RenderZCone createRenderObject(BuildContext context) {
     return RenderZCone(
         color: color,
-        path: path,
+        pathBuilder: buildPath(),
         stroke: stroke,
         close: closed,
         fill: fill,
@@ -45,7 +44,7 @@ class ZCone extends ZCircle {
   @override
   void updateRenderObject(BuildContext context, RenderZCone renderObject) {
     renderObject..color = color;
-    renderObject..path = path;
+    renderObject..pathBuilder = buildPath();
     renderObject..stroke = stroke;
     renderObject..close = closed;
     renderObject..fill = fill;
@@ -63,7 +62,7 @@ class RenderZCone extends RenderZShape {
   double get length => _length;
 
   set length(double value) {
-    assert(value != null && value >= 0);
+    assert(value >= 0);
     if (_length == value) return;
     _length = value;
     markNeedsLayout();
@@ -74,52 +73,50 @@ class RenderZCone extends RenderZShape {
   double get diameter => _diameter;
 
   set diameter(double value) {
-    assert(value != null && value >= 0);
+    assert(value >= 0);
     if (_diameter == value) return;
     _diameter = value;
     markNeedsLayout();
   }
 
   RenderZCone({
-    double length,
-    double diameter,
-    Color color,
-    Color backfaceColor,
+    required double length,
+    required double diameter,
+    required Color color,
+    Color? backfaceColor,
     ZVector front = const ZVector.only(z: 1),
     bool close = false,
     bool visible = true,
     bool fill = false,
     double stroke = 1,
-    List<ZPathCommand> path = const [],
-  })  : assert(length != null),
-        assert(diameter != null),
-        _length = length,
+    PathBuilder pathBuilder = PathBuilder.empty,
+  })  : _length = length,
         _diameter = diameter,
         super(
-            color: color,
-            backfaceColor: backfaceColor,
-            front: front,
-            close: close,
-            visible: visible,
-            fill: fill,
-            stroke: stroke,
-            path: path);
+          color: color,
+          backfaceColor: backfaceColor,
+          front: front,
+          close: close,
+          visible: visible,
+          fill: fill,
+          stroke: stroke,
+          pathBuilder: pathBuilder,
+        );
 
   ZVector tangentA = ZVector.zero;
   ZVector tangentB = ZVector.zero;
 
-  ZVector apex;
+  ZVector? apex;
 
   @override
-  void performLayout() {
+  void performTransformation() {
+    super.performTransformation();
     final ZParentData anchorParentData = parentData as ZParentData;
-    matrix4.setIdentity();
 
     apex = ZVector.only(z: length);
     anchorParentData.transforms.reversed.forEach((matrix4) {
-      apex = apex.transform(matrix4.translate, matrix4.rotate, matrix4.scale);
+      apex = apex!.transform(matrix4.translate, matrix4.rotate, matrix4.scale);
     });
-    super.performLayout();
   }
 
   @override
@@ -136,11 +133,14 @@ class RenderZCone extends RenderZShape {
     super.render(renderer);
   }
 
+  @override
+  bool get needsDirection => true;
+
   void _renderConeSurface(ZRenderer renderer) {
     if (!visible) {
       return;
     }
-    renderApex = apex - origin;
+    renderApex = apex! - origin;
     final scale = normalVector.magnitude();
     final apexDistance = renderApex.magnitude2d();
     final normalDistance = normalVector.magnitude2d();
@@ -168,12 +168,12 @@ class RenderZCone extends RenderZShape {
 
     final path = [
       ZMove.vector(tangentA),
-      ZLine.vector(apex),
+      ZLine.vector(apex!),
       ZLine.vector(tangentB),
     ];
+    final builder = ZPathBuilder()..renderPath(path);
 
-    renderer.renderPath(path);
-    if (stroke > 0) renderer.stroke(color, stroke);
-    if (fill) renderer.fill(color);
+    if (stroke > 0) renderer.stroke(builder.path, color, stroke);
+    if (fill) renderer.fill(builder.path, color);
   }
 }

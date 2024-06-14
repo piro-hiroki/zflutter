@@ -1,9 +1,5 @@
-import 'dart:ui';
-
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-
-import 'package:zflutter/src/widgets/group.dart';
 import 'package:zflutter/zflutter.dart';
 
 class ZCylinder extends StatelessWidget {
@@ -16,16 +12,16 @@ class ZCylinder extends StatelessWidget {
   final Color color;
   final bool visible;
 
-  final Color backface;
-  final Color frontface;
+  final Color? backface;
+  final Color? frontface;
 
   ZCylinder({
     this.diameter = 1,
     this.length = 1,
     this.stroke = 1,
     this.fill = true,
-    this.color,
-    this.visible,
+    required this.color,
+    this.visible = true,
     this.backface,
     this.frontface,
   });
@@ -78,25 +74,39 @@ class ZCylinder extends StatelessWidget {
   }
 }
 
-class _ZCylinderMiddle extends ZShape {
+class _ZCylinderMiddle extends ZShapeBuilder {
   final double diameter;
 
+  final List<ZPathCommand> path;
+
   _ZCylinderMiddle(
-      {this.diameter, List<ZPathCommand> path, double stroke = 1, Color color})
-      : super(path: path, stroke: stroke, color: color);
+      {required this.diameter,
+      required this.path,
+      double stroke = 1,
+      required Color color})
+      : super(stroke: stroke, color: color);
 
   @override
   RenderZCylinder createRenderObject(BuildContext context) {
     return RenderZCylinder(
-        path: path, stroke: stroke, diameter: diameter, color: color);
+      pathBuilder: buildPath(),
+      stroke: stroke,
+      diameter: diameter,
+      color: color,
+    );
   }
 
   @override
   void updateRenderObject(BuildContext context, RenderZCylinder renderObject) {
     renderObject.diameter = diameter;
     renderObject.stroke = stroke;
-    renderObject.path = path;
+    renderObject.pathBuilder = buildPath();
     renderObject.color = color;
+  }
+
+  @override
+  PathBuilder buildPath() {
+    return SimplePathBuilder(path);
   }
 }
 
@@ -109,22 +119,27 @@ class RenderZCylinder extends RenderZShape {
     if (_diameter == value) return;
     _diameter = value;
 
-    markNeedsPaint();
+    markNeedsLayout();
   }
 
-  RenderZCylinder(
-      {List<ZPathCommand> path, double diameter, double stroke, Color color})
-      : _diameter = diameter,
-        super(path: path, stroke: stroke, color: color);
+  RenderZCylinder({
+    required PathBuilder pathBuilder,
+    required double diameter,
+    required double stroke,
+    required Color color,
+  })  : _diameter = diameter,
+        super(pathBuilder: pathBuilder, stroke: stroke, color: color);
 
   @override
+  bool get needsDirection => true;
+  @override
   void render(ZRenderer renderer) {
+    final builder = ZPathBuilder()..renderPath(transformedPath);
     var scale = normalVector.magnitude();
     var strokeWidth = diameter * scale + stroke;
 
     renderer.setLineCap(StrokeCap.butt);
-    renderer.renderPath(transformedPath);
-    renderer.stroke(color, strokeWidth);
+    renderer.stroke(builder.path, color, strokeWidth);
     renderer.setLineCap(StrokeCap.round);
     super.render(renderer);
   }

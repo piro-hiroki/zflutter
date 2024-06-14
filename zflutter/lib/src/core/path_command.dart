@@ -1,57 +1,44 @@
-import 'package:flutter/cupertino.dart';
-import 'package:zflutter/src/core/renderer.dart';
+//@dart=2.12
 
 import 'core.dart';
-
+import 'package:vector_math/vector_math_64.dart' as vector;
 // TODO: This Paths needs to be immutable;
 
 abstract class ZPathCommand {
   final ZVector endRenderPoint = ZVector.zero;
 
-  void reset();
+  const ZPathCommand();
 
-  ZPathCommand transform(ZVector translation, ZVector rotate, ZVector scale);
+  ZPathCommand transform(vector.Matrix4 transformation);
 
-  void render(ZRenderer renderer);
+  void render(
+    ZPathBuilder renderer,
+    ZVector previousPoint,
+  );
 
   ZVector point({index = 0});
 
   ZVector renderPoint({int index = 0});
-
-  set previous(ZVector previousPoint) {}
-
-  ZPathCommand clone();
 }
 
 class ZMove extends ZPathCommand {
-  ZVector _point;
+  final ZVector _point;
 
-  ZVector _renderPoint;
+  ZVector get endRenderPoint => _point;
 
-  ZVector get endRenderPoint => _renderPoint;
+  const ZMove.vector(this._point);
 
-  ZMove.vector(this._point) {
-    _renderPoint = _point.copy();
+  ZMove(double x, double y, double z) : _point = ZVector(x, y, z);
+
+  ZMove.only({double x = 0, double y = 0, double z = 0})
+      : _point = ZVector(x, y, z);
+
+  ZPathCommand transform(vector.Matrix4 transformation) {
+    return ZMove.vector(_point.applyMatrix4(transformation));
   }
 
-  ZMove(double x, double y, double z) {
-    _renderPoint = ZVector(x, y, z);
-  }
-
-  ZMove.only({double x = 0, double y = 0, double z = 0}) {
-    _renderPoint = ZVector(x, y, z);
-  }
-
-  void reset() {
-    _renderPoint = _point;
-  }
-
-  ZPathCommand transform(ZVector translation, ZVector rotate, ZVector scale) {
-    return ZMove.vector(_renderPoint.transform(translation, rotate, scale));
-  }
-
-  void render(ZRenderer renderer) {
-    renderer.move(_renderPoint);
+  void render(ZPathBuilder renderer, ZVector previousPoint) {
+    renderer.move(_point);
   }
 
   ZVector point({index = 0}) {
@@ -59,18 +46,14 @@ class ZMove extends ZPathCommand {
   }
 
   ZVector renderPoint({index = 0}) {
-    return _renderPoint;
-  }
-
-  ZPathCommand clone() {
-    return ZMove.vector(this.point());
+    return _point;
   }
 }
 
 class ZLine extends ZPathCommand {
-  ZVector _point;
+  late ZVector _point;
 
-  ZVector _renderPoint;
+  late ZVector _renderPoint;
 
   ZVector get endRenderPoint => _renderPoint;
 
@@ -79,22 +62,20 @@ class ZLine extends ZPathCommand {
   }
 
   ZLine(double x, double y, double z) {
+    _point = ZVector(x, y, z);
     _renderPoint = ZVector(x, y, z);
   }
 
   ZLine.only({double x = 0, double y = 0, double z = 0}) {
+    _point = ZVector(x, y, z);
     _renderPoint = ZVector(x, y, z);
   }
 
-  void reset() {
-    _renderPoint = _point;
+  ZPathCommand transform(vector.Matrix4 transformation) {
+    return ZLine.vector(_renderPoint.applyMatrix4(transformation));
   }
 
-  ZPathCommand transform(ZVector translation, ZVector rotate, ZVector scale) {
-    return ZLine.vector(_renderPoint.transform(translation, rotate, scale));
-  }
-
-  void render(ZRenderer renderer) {
+  void render(ZPathBuilder renderer, ZVector previousPoint) {
     renderer.line(_renderPoint);
   }
 
@@ -105,16 +86,12 @@ class ZLine extends ZPathCommand {
   ZVector renderPoint({index = 0}) {
     return _renderPoint;
   }
-
-  ZPathCommand clone() {
-    return ZLine.vector(_point);
-  }
 }
 
 class ZBezier extends ZPathCommand {
   List<ZVector> points;
 
-  List<ZVector> renderPoints;
+  late List<ZVector> renderPoints;
 
   ZVector get endRenderPoint => renderPoints.last;
 
@@ -122,19 +99,13 @@ class ZBezier extends ZPathCommand {
     renderPoints = points.map((e) => e.copy()).toList();
   }
 
-  void reset() {
-    /* renderPoints.asMap().forEach((index, vector) {
-      vector.set(points[index]);
-    });*/
-  }
-
-  ZPathCommand transform(ZVector translation, ZVector rotate, ZVector scale) {
+  ZPathCommand transform(vector.Matrix4 transformation) {
     return ZBezier(renderPoints.map((point) {
-      return point.transform(translation, rotate, scale);
+      return point.applyMatrix4(transformation);
     }).toList());
   }
 
-  void render(ZRenderer renderer) {
+  void render(ZPathBuilder renderer, ZVector previousPoint) {
     renderer.bezier(renderPoints[0], renderPoints[1], renderPoints[2]);
   }
 
@@ -145,31 +116,22 @@ class ZBezier extends ZPathCommand {
   ZVector renderPoint({index = 0}) {
     return renderPoints[index];
   }
-
-  ZPathCommand clone() {
-    return ZBezier(this.points);
-  }
 }
 
 const double _arcHandleLength = 9 / 16;
 
 class ZArc extends ZPathCommand {
-  List<ZVector> points;
-  ZVector _previous = ZVector.zero;
+  late List<ZVector> points;
 
-  List<ZVector> renderPoints;
+  late List<ZVector> renderPoints;
 
   ZVector get endRenderPoint => renderPoints.last;
 
-  ZArc.list(this.points, [this._previous]) {
+  ZArc.list(this.points, [ZVector? previous]) {
     renderPoints = points.map((e) => e.copy()).toList();
   }
 
-  ZArc({@required ZVector corner, @required ZVector end, ZVector previous})
-      : assert(corner != null && end != null,
-            'Corner and end points can\'t be null') {
-    _previous = previous;
-
+  ZArc({required ZVector corner, required ZVector end}) {
     points = [corner, end];
 
     renderPoints = points.map((e) => e.copy()).toList();
@@ -181,15 +143,14 @@ class ZArc extends ZPathCommand {
     renderPoints = List.generate(renderPoints.length, (i) => points[i]);
   }
 
-  ZPathCommand transform(ZVector translation, ZVector rotate, ZVector scale) {
+  ZPathCommand transform(vector.Matrix4 transformation) {
     return ZArc.list(renderPoints.map((point) {
-      return point.transform(translation, rotate, scale);
+      return point.applyMatrix4(transformation);
     }).toList());
   }
 
-  void render(ZRenderer renderer) {
-    assert(_previous != null);
-    var prev = _previous;
+  void render(ZPathBuilder renderer, ZVector previousPoint) {
+    var prev = previousPoint;
     var corner = renderPoints[0];
     var end = renderPoints[1];
     var a = ZVector.lerp(prev, corner, _arcHandleLength);
@@ -203,15 +164,5 @@ class ZArc extends ZPathCommand {
 
   ZVector renderPoint({index = 0}) {
     return renderPoints[index];
-  }
-
-  @override
-  set previous(ZVector previousPoint) {
-    assert(previousPoint != null);
-    _previous = previousPoint;
-  }
-
-  ZPathCommand clone() {
-    return ZArc.list(points, _previous);
   }
 }

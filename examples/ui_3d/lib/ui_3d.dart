@@ -1,6 +1,5 @@
 import 'dart:math';
 
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:zflutter/zflutter.dart';
 
@@ -21,7 +20,7 @@ class Ui3D extends StatefulWidget {
 }
 
 class _ZUiState extends State<Ui3D> with TickerProviderStateMixin {
-  AnimationController animationController;
+  AnimationController? animationController;
 
   @override
   void initState() {
@@ -30,14 +29,14 @@ class _ZUiState extends State<Ui3D> with TickerProviderStateMixin {
       vsync: this,
     );
     Future.delayed(Duration(seconds: 3),
-        () => {animationController.repeat(reverse: true)});
+        () => {animationController?.repeat(reverse: true)});
 
     super.initState();
   }
 
   @override
   void dispose() {
-    animationController.dispose();
+    animationController?.dispose();
 
     super.dispose();
   }
@@ -45,7 +44,7 @@ class _ZUiState extends State<Ui3D> with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     final curve = CurvedAnimation(
-        parent: animationController, curve: Curves.easeInOutSine);
+        parent: animationController!, curve: Curves.easeInOutSine);
 
     final mediaQuery = MediaQuery.of(context);
     final height = mediaQuery.size.height;
@@ -54,7 +53,7 @@ class _ZUiState extends State<Ui3D> with TickerProviderStateMixin {
     return Material(
       color: Colors.black,
       child: AnimatedBuilder(
-        animation: animationController,
+        animation: animationController!,
         builder: (context, _) {
           final progress = 1 - curve.value;
           final appBarProgress =
@@ -139,7 +138,7 @@ class ZAppBar extends StatelessWidget {
             height: appBar,
             width: width,
             depth: depth,
-            color: Colors.blueAccent[400],
+            color: Colors.blueAccent[400]!,
           ),
         ),
         ZToBoxAdapter(
@@ -163,7 +162,7 @@ class ZFloatingButton extends StatelessWidget {
             child: ZCylinder(
               diameter: floatingButtonSize,
               length: depth,
-              color: Colors.blueAccent[400],
+              color: Colors.blueAccent[400]!,
             )),
         ZToBoxAdapter(
           height: floatingButtonSize,
@@ -180,9 +179,9 @@ class ZFloatingButton extends StatelessWidget {
 }
 
 class ZListTile extends StatelessWidget {
-  final int index;
+  final int? index;
 
-  const ZListTile({Key key, this.index}) : super(key: key);
+  const ZListTile({Key? key, this.index}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -195,7 +194,7 @@ class ZListTile extends StatelessWidget {
               depth: titleDepth / 2,
               height: tileHeight,
               width: width,
-              color: Colors.grey[100],
+              color: Colors.grey[100]!,
             )),
         ZToBoxAdapter(
           height: tileHeight,
